@@ -1,0 +1,193 @@
+---
+title: "PW4"
+author: "PINPIN Pierrick"
+date: "2022-10-07"
+output: html_document
+---
+
+
+## Question 1
+```{r}
+dataset <- read.csv(file= "E:/ESILV/S7/Machine Learning/PW/PW4/Social_Network_Ads.csv")
+
+View(dataset)
+```
+
+## Question 2
+```{r}
+str(dataset)
+```
+```{r}
+summary(dataset)
+```
+We can see that this dataset is composed of 400 observations and 5 variables, so, 400 lines and 5 columns.
+The function str() describe the dataset in its entirety: the types of the variables (int, num, char...).
+The function summary summarize the data. It gives us the min, max and all the quartiles of every variable.
+
+## Question 3
+```{r}
+library("caTools")
+set.seed(123) 
+
+split = sample.split(dataset$Purchased, SplitRatio=0.8)
+training_set = subset(dataset,split == TRUE)
+test_set = subset(dataset, split == FALSE)
+
+View(training_set)
+View(test_set)
+```
+Splits the dataset into 2 parts with a split ratio of 80% for training_set and 20% for the test_set.
+
+## Question 4
+```{r}
+training_set[c(3,4)] = scale(training_set[c(3,4)])
+test_set[c(3,4)] = scale(test_set[c(3,4)])
+```
+Scales the variables Age and EstimatedSalary.
+
+## Question 5
+```{r}
+model = glm(Purchased~Age,data= training_set, family= "binomial")
+
+summary(model)
+```
+Simple Logistic regression model.
+
+## Question 6
+We chose 'binomial' because this is a generalized linear model where the variable to predict is binary (0 or 1). That is why we chose the Binomial law.
+
+## Question 7
+```{r}
+summary(model)$coefficients
+```
+We can see that the equation of the logistic regression of 'Purchased' in function of 'Age' is:
+y= exp(-0.9367914 + 2.0264333 * Age)/ (1 + exp(-0.9367914 + 2.0264333 * Age))
+We can identify the coefficients: b0= -0.9367914 ; b1= 2.0264333
+
+## Question 8
+```{r}
+summary(model)
+```
+We can see that the p-value smaller than 2e-16 which is smaller than 0.05, so Age is a significant variable for this model. Moreover, the Signif. codes support this.
+
+## Question 9
+```{r}
+summary(model)$aic
+```
+We have a AIC (Akaike Information Criterion) of: 270.695.
+
+## Question 10
+```{r}
+plot(training_set$Age, training_set$Purchased)
+curve(predict(model, data.frame(Age= x), type= 'response'), add= TRUE)
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(training_set, aes(x= Age, y= Purchased)) + geom_point(shape = 21, fill = "lightgray", size= 2) +
+  stat_smooth(method="glm", color="green", se= FALSE, method.args=  list(family= binomial)) +
+  ggtitle("Plot of 'Purchased' in function of 'Age' and \n the curve of the obtained logistic regression model") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Question 11
+```{r}
+model2 <- glm(Purchased~Age + EstimatedSalary, data= training_set, family= "binomial")
+```
+
+## Question 12
+```{r}
+summary(model2)
+```
+We can see that all the p-values of the variables Age and EstimatedSalary are smaller that 0.05. So, this variables are significant. This is supported by the Signif. codes.
+
+## Question 13
+```{r}
+summary(model2)$aic
+```
+
+We can see an AIC of 215.844, which is smaller than the AIC with the only variable 'Age': 270.695. So, this model is better than the last.
+
+## Question 14
+```{r}
+df_pred= data.frame(Age= test_set$Age, EstimatedSalary= test_set$EstimatedSalary)
+df_pred$Purchased= predict(model2, newdata= df_pred, type="response")
+```
+
+## Question 15
+```{r}
+View(df_pred)
+df_pred
+```
+
+```{r}
+df_pred$Purchased= ifelse(df_pred$Purchased>0.5, 1, 0)
+df_pred
+```
+## Question 16
+```{r}
+cm= table(test_set$Purchased, df_pred$Purchased)
+cm
+```
+We can see that there are 20 true positives, 7 false positives, 44 true negatives and 9 false negatives.
+
+## Question 17
+```{r}
+acc <- (cm[1]+cm[4])/(cm[1]+cm[2]+cm[3]+cm[4])
+acc
+```
+We have an accuracy of 0.8 for this model.
+```{r}
+spe <- cm[1]/ (cm[1]+cm[3])
+spe
+```
+We have a specificity of 0.8627451.
+```{r}
+sen <- cm[4]/(cm[4]+cm[2])
+sen
+```
+We have a sensitivity of 0.6896552.
+
+```{r}
+pre <- cm[4]/(cm[4]+cm[3])
+pre
+```
+We have a precision of 0.7407407.
+
+## Question 18
+```{r}
+library("ROCR")
+
+p_pred2 <- predict(model2, newdata = test_set[c("Age", "EstimatedSalary")], type="response")
+score2 <- prediction(p_pred2, test_set$Purchased)
+score2
+```
+```{r}
+performance(score2, "auc")
+auc2 <- as.numeric(performance(score2, "auc")@y.values)
+auc2
+```
+```{r}
+plot(performance(score2, "tpr", "fpr"), col ="red")
+abline(0,1, col ="blue")
+```
+
+## Question 19
+```{r}
+p_pred1 <- predict(model, newdata = test_set[c("Age")], type="response")
+score1 <- prediction(p_pred1, test_set$Purchased)
+auc1 <- as.numeric(performance(score1, "auc")@y.values)
+auc1
+```
+We can see that the AUC of the model1 (variable: 'Age') is: 0.8739013.
+We can see that the AUC of the model2 (variables: 'Age', 'EstimatedSalary') is: 0.8999324.
+So, the AUC of the model2 is higher. It means that is a better model than the model1.
+```{r}
+par(mfrow= c(1,2))
+plot(performance(score1, "tpr", "fpr"), col ="red", main= "model1")
+abline(0,1, col ="blue")
+
+plot(performance(score2, "tpr", "fpr"), col ="red", main= "model2")
+abline(0,1, col ="blue")
+```
