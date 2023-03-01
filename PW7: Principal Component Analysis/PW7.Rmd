@@ -1,0 +1,374 @@
+---
+title: "PW7"
+author: "Pierrick PINPIN"
+date: "2022-11-22"
+output: html_document
+---
+
+# Question 1
+```{r}
+library(FactoMineR)
+library(factoextra)
+```
+
+# Question 2
+```{r}
+data <- data("decathlon2")
+head(decathlon2)
+```
+
+#Question 3
+```{r}
+str(decathlon2)
+```
+>We can see 27 individuals and 13 variables:
+>- 23 Active individuals
+>- 4 Supplementary individuals
+>- 10 Active variables 
+>- 3 Supplementary variables
+
+>Let's extract the active individuals, variables and scale variables.
+
+# Question 4
+```{r}
+active.data <- decathlon2[1:23,1:10]
+
+active.data <- scale(active.data, center = TRUE, scale = TRUE)
+head(active.data)
+```
+
+# Question 5
+```{r}
+active.pca <- PCA(active.data)
+```
+
+# Question 6
+```{r}
+summary(active.pca)
+```
+
+>Extract the eigenvalues/variances of principal components
+
+```{r}
+active.pca$eig #or
+#get_eigenvalue(active.pca)
+```
+>Visualize the eigenvalues
+
+```{r}
+fviz_eig(active.pca)
+```
+>Extract the results for individuals and visualize it:
+
+```{r}
+vind <- get_pca_ind(active.pca)
+head(vind$coord)
+head(vind$cos2)
+head(vind$contrib)
+vind$dist
+```
+```{r}
+fviz_pca_ind(active.pca)
+```
+
+>Extract the results for variables and visualize it:
+
+```{r}
+vvar <- get_pca_var(active.pca)
+head(vvar$coord)
+head(vvar$cor)
+head(vvar$cos2)
+head(vvar$contrib)
+```
+```{r}
+fviz_pca_var(active.pca)
+```
+>Let's make a biplot of individuals and variables. Superimposes the graphs of individuals and variables.
+
+```{r}
+fviz_pca_biplot(active.pca)
+```
+
+# Question 7
+
+>Let's determine the number of principal components to be analysed. There are 3 ways to do it:
+
+```{r}
+eigv <- active.pca$eig
+eigv
+```
+
+
+>Kaiser criteria: We count the number of components with eigenvalues greater than 1
+
+```{r}
+eigv2 <- ifelse(eigv > 1, TRUE, FALSE)
+eigv2
+```
+```{r}
+sum(eigv2, na.rm = TRUE)-2*10
+#Remove the number of TRUE from the other columns (percentage of variance cumulative and percentage of variance)
+```
+>We can see that only 3 components have their eigenvalues which are higher than 1. So, we can conclude that these 3 components are the principal components.
+
+
+>Limit the number of component: We look at the cumulative variance and choose the number of components with a cumulative variance above a given threshold. Here, let's choose 70%.
+
+```{r}
+eigv3 <- ifelse(eigv > 70, TRUE, FALSE)
+eigv3
+```
+>We can see that from component 3, the condition is satisfied. Thus, the principal components are the first 3.
+
+# Question 8
+
+>Scree Plot
+
+```{r}
+fviz_eig(active.pca)
+```
+>We can see on the Scree plot that from the 3rd or 5th dimension, the percentage of explanation of the variance of the other dimensions are comparable. It is very difficult to distinguish the optimal number of dimensions. 
+
+#Question 9
+```{r}
+fviz_pca_var(active.pca)
+```
+
+# Question 10
+```{r}
+vvar$cos2
+```
+
+# Question 11
+```{r}
+fviz_pca_var(active.pca, col.var = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE
+             )
+```
+>We can see that the variables with the highest cos² and therefore the best representation qualities are:
+- X100m (Dim1= 7.235641e-01, Dim2= 0.0321836641)
+- Long.jump (Dim1= 6.307229e-01, Dim2= 0.0788806285)
+- Pole.vault (Dim1= 4.720540e-02, Dim2= 0.6519772763)
+
+# Question 12
+```{r}
+dimdesc(active.pca)
+```
+>The most significantly associated variables with first principal components are:
+
+```{r}
+d1 <- dimdesc(active.pca)
+d1
+```
+
+# Question 13
+```{r}
+vind <- get_pca_ind(active.pca)
+head(vvar$coord)
+head(vvar$cor)
+head(vvar$cos2)
+head(vvar$contrib)
+```
+
+# Question 14
+```{r}
+fviz_pca_ind(active.pca, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE
+             )
+```
+
+# Question 15
+```{r}
+fviz_pca_ind(active.pca, col.ind = "cos2", pointsize = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE 
+             )
+```
+
+# Question 16
+```{r}
+res.pca <- PCA(decathlon2, ind.sup= 24:27, quanti.sup = 11:12, quali.sup=13)
+```
+
+# Question 17
+
+>Predicted results (coordinates, correlation and cos2) for the supplementary quantitative variables:
+
+```{r}
+res.pca$quanti.sup
+```
+
+# Question 18
+
+>Predict results for the supplementary individuals (ind.sup)
+
+```{r}
+res.pca$ind.sup
+```
+>Let's visualize them together:
+
+```{r}
+plot <- fviz_pca_ind(res.pca, col.ind.sup = "blue", repel = TRUE)
+plot <- fviz_add(plot, res.pca$quali.sup$coord, color = "red")
+plot
+```
+
+# Question 19
+```{r}
+fviz_pca_ind(res.pca, habillage = 13,
+             addEllipses =TRUE, ellipse.type = "confidence",
+             palette = "jco",
+             repel = TRUE)
+```
+```{r}
+set.seed(123)
+res.km <- kmeans(vvar$coord, centers = 3, nstart = 25)
+grp <- as.factor(res.km$cluster)
+
+fviz_pca_var(active.pca, col.var = grp, 
+             palette = c("#0073C2FF", "#EFC000FF", "#868686FF"),
+             legend.title = "Cluster")
+```
+
+# Question 20
+
+>Let's start with the correlation graph of the variables: 
+We know that:
+- Positively correlated variables are clustered.
+- Negatively correlated variables are positioned on opposite sides of the origin of the graph (opposite quadrants).
+- The distance between the variables and the origin measures the quality of the representation of the variables. Variables that are far from the origin are well represented by the PCA.
+Thus we can conclude that the variables, the sprint type events (X100m, X110m.hurdle and X400m) are positively correlated with each other; but negatively correlated with the variables, the strength and jump type events (Javelin, Long; jump, Shot.put, Discus, High.jump). 
+The variables, the best represented events are: X100m, Long.jump and Pole.vault.
+
+>Concerning the graph of individuals: 
+The graph of individuals informs us that individuals such as BOURGUIGNON, HERNU and BERNARD are opposed to the individuals Karpov, Maceay and Bernard. This can be explained by the fact that the first group performs in running sports (X100m, X110m.hurdle and X400m) but underperforms in jumping and strength sports (Javelin, Long; jump, Shot.put, Discus, High.jump).
+
+
+# *Example 2 : IRIS Data*
+
+# Question 1
+```{r}
+data("iris")
+head(iris)
+```
+
+```{r}
+corm <- cor(iris[,1:4])
+corm
+```
+
+# Question 2
+```{r}
+data <- aggregate(.~Species, iris, mean)
+```
+
+
+#Question 3
+```{r}
+library(ggplot2)
+library(reshape2)
+
+iris2 <- melt(iris, id.vars="Species")
+iris2[1:3,]
+
+bar1 <- ggplot(data=iris2, aes(x=Species, y=value, fill=variable))
+bar1 + geom_bar(stat="identity", position="dodge") + 
+  scale_fill_manual(values=c("orange", "blue", "darkgreen", "purple"),
+                    name="Iris\nMeasurements",
+                    breaks=c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width"),
+                    labels=c("Sepal Length", "Sepal Width", "Petal Length", "Petal Width"))
+```
+
+# Question 4
+```{r}
+iris.pca <- princomp(iris[,1:4])
+iris.pca
+```
+```{r}
+summary(iris.pca)
+```
+>With these tables, we can see that dimension 1 explains 92.46% of the data. Thus, the 1st dimension is very important. Let's continue the study:
+
+# Question 5
+
+>Eigenvalues
+
+```{r}
+fviz_eig(iris.pca)
+```
+>The graph of individuals
+
+```{r}
+fviz_pca_ind(iris.pca)
+```
+
+>The graph of variables
+
+```{r}
+fviz_pca_var(iris.pca)
+```
+
+>The biplot graph
+
+```{r}
+fviz_pca_biplot(iris.pca)
+```
+
+>The contributions of the variables to the first 2 principal components
+
+```{r}
+fviz_contrib(iris.pca, choice = "var", axes = 1:2, top = 10)
+```
+
+# *Example 3 (Extra) : Step-by-step PCA*
+
+# Question 1
+```{r}
+test <- iris
+nams <- as.vector(iris$Species)
+row.names(test) <- make.names(nams, unique= TRUE)
+
+```
+
+
+```{r}
+X <- iris[, 1:4]
+Y <- iris$Species
+```
+
+# Question 2
+```{r}
+scaledX <- scale(X)
+```
+
+# Question 3
+```{r}
+corm <- cor(scaledX)
+corm
+```
+
+# Question 4 & 5
+```{r}
+eigd <- eigen(corm)
+eigd
+```
+
+# Question 6
+```{r}
+rawcorm <- cor(X)
+rawcorm
+```
+>We can see that we get the same result. Thus, the scaling does not change anything to the variance-covariance matrix. So we will obtain the same eigenvalues and eigen vectors. This can be explained by the fact that the data have the same unit of measurement: the centimeter.
+
+# Question 7
+```{r}
+iris.pca <- PCA(scaledX)
+iris.pca$eig
+```
+```{r}
+eigd
+```
+
+
