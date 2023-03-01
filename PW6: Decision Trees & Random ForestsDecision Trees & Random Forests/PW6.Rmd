@@ -1,0 +1,471 @@
+---
+title: "PW6"
+author: "Pierrick PINPIN"
+date: "2022-11-11"
+output: html_document
+---
+
+# *Regression Tree Model* 
+
+## Question 1
+```{r}
+library("MASS")
+library("caTools")
+
+set.seed(1)
+
+sample_size <- sample(1:nrow(Boston), size= round(0.5*nrow(Boston)), replace= FALSE)
+
+training_set <- Boston[sample_size,]
+test_set <- Boston[-sample_size,]
+
+dim(training_set)
+dim(test_set)
+```
+
+## Question 2
+```{r}
+library("rpart")
+
+Boston_tree <- rpart(formula= medv~., data= training_set, method  = "anova")
+
+```
+
+## Question 3
+```{r}
+plot(Boston_tree)
+text(Boston_tree,pretty=0,cex=0.8)
+title(main = "Regression Tree of Boston dataset")
+```
+
+## Question 4
+```{r}
+library("rpart.plot")
+
+rpart.plot(Boston_tree)
+```
+```{r}
+prp(Boston_tree)
+```
+
+##Question 5
+```{r}
+summary(Boston_tree)
+```
+```{r}
+printcp(Boston_tree)
+```
+```{r}
+plotcp(Boston_tree)
+```
+>As a rule of thumb, it is best to prune a decision tree using the cp of smallest tree that is within one standard deviation of the tree with the smallest xerror. In this example, the best xerror is:
+
+>Let's find the indew of the the minimum xerror:
+
+```{r}
+best_index <- which.min(Boston_tree$cptable[,"xerror"])
+best_index
+```
+>In this example, the smallest xerror is:
+
+```{r}
+Boston_tree$cptable[best_index,"xerror"]
+```
+>The standart deviation is:
+
+```{r}
+Boston_tree$cptable[best_index,"xstd"]
+```
+>So we want the smallest tree with a xerror lower than 0.4134964 + 0.08666104 = 0.50015744
+
+```{r}
+par(mfrow=c(1,3))
+
+Boston_tree <- rpart(medv ~ ., data = training_set, cp=0)
+rpart.plot(Boston_tree)
+
+Boston_tree <- rpart(medv ~ ., data = training_set) #cp = 0.01
+rpart.plot(Boston_tree)
+
+Boston_tree <- rpart(medv ~ ., data = training_set, cp= 0.010488) 
+rpart.plot(Boston_tree)
+
+```
+>The complexity parameter (cp) in rpart is the minimum improvement in the model needed at each node. It’s based on the cost complexity of the model.
+>Here we choose cp = 0.01 because this is the complexity parameter which corespond to the  smallest tree which we found before.
+
+
+## Question 6
+```{r}
+RMSE <- function(vect1, vect2){
+  rmse <- sqrt(mean((vect1 - vect2)^2))
+}
+```
+
+## Question 7
+```{r}
+pre <- predict(Boston_tree, test_set)
+pre
+```
+```{r}
+trmse <- RMSE(test_set$medv, pre)
+trmse
+```
+# *Linear Regression Model*
+
+## Question 8
+```{r}
+lmodel <- glm(medv~., data= training_set)
+
+lpre <- predict(lmodel, test_set )
+
+lrmse <- RMSE(test_set$medv, lpre)
+lrmse
+```
+>We see that the rmse of the linear regression model is smaller than that found with the regression tree.
+>So, we can conclude that: the linear regression model predicts the data better than the regression tree.
+
+## Question 9
+```{r}
+plot(test_set$medv, pre, main= "Regression Tree")
+abline(1, 1, col= 'red')
+```
+
+```{r}
+plot(test_set$medv, lpre, main= "Linear Regression")
+abline(1, 1, col= 'red')
+```
+>We can visually see that, there are more points near the line of equation y=x with the linear regression model than the one with the regression tree.
+
+# *Bagging Model*
+
+## Question 10 & Question 11
+```{r}
+library("ipred")
+
+bmodel <- bagging(medv~., training_set)
+
+summary(bmodel)
+```
+
+## Question 11
+```{r}
+bpre <- predict(bmodel, test_set)
+
+brmse <- RMSE(bpre, test_set$medv)
+brmse
+```
+>We can see that the RMSE of the Bagged Model is lower than the Regression Tree Model but higher than the Linear Regression Model.
+
+# *Random Forest*
+
+## Question 12
+```{r}
+library("randomForest")
+
+set.seed(123)
+rfmodel <- randomForest(medv~., training_set)
+
+rfpre <- predict(rfmodel, test_set)
+
+rfrmse <- RMSE(rfpre, test_set$medv)
+rfrmse
+```
+>We see a RMSE lower than all the model fitted before. Indeed, the rmse of the Random Forest Model is lower than the rmse of Linear Regression Model, Regression Tree Model and Bagged Model:
+rfrmse < lrmse < brmse < trmse
+>We can conclude that the best performance of all models fitted is the Bagging Model.
+
+
+## Question 13
+```{r}
+importance(rfmodel)
+```
+>In order, the most important predictors are: 
+
+```{r}
+imp <- as.data.frame(importance(rfmodel))
+imp <- data.frame(Variables= row.names(imp), IncNodePurity= imp$IncNodePurity)
+imp[order(imp$IncNodePurity, decreasing = TRUE),]
+```
+>rm, lstat, crim, ptratio, nox, dis, indus, tax, age, black, zn, rad and chas
+
+>We foud the three most important variables in the last models.
+
+## Question 14
+```{r}
+varImpPlot(rfmodel)
+```
+>This graph confirms that rm, lstat and crim are the most important variables.
+
+# *Boosted Model*
+
+## Question 15
+```{r}
+library("gbm")
+
+set.seed(123)
+boomodel <- gbm(medv~., data= training_set, distribution= "gaussian", n.trees=500)
+
+boopre <- predict(boomodel, test_set)
+boormse <- RMSE(boopre, test_set$medv)
+boormse
+```
+>So we have:
+- RMSE of Regression Tree Model: 5.929957
+- RMSE of Linear Regression Model: 5.182783
+- RMSE of Bagging Model: 5.310771
+- RMSE of Random Forest: 4.361607
+- RMSE of Boosted Model: 4.407787
+
+>We can conclude that the Random Forest Model stays the best model to predict the data. Boosted Model still has a good performance.
+
+## Question 16
+```{r}
+summary(boomodel)
+```
+>Again, we can see that the variables 'rm', 'lstat' and 'crim' have the greatest influence.
+
+## Question 17
+```{r}
+
+df <- data.frame(Models= c("Regression Tree Model", "Linear Regression Model", "Bagged Model", "Random Forest Model", "Boosted Model"), RMSE= c(trmse, lrmse, brmse, rfrmse, boormse))
+
+library("ggplot2")
+
+ggplot(df, aes(x= Models, y= RMSE)) +
+  geom_col(aes(fill= Models)) +
+  scale_fill_manual(values= c("#000066", "#000099", "#0000FF", "#0066FF", "#0099FF"))
+```
+>We can see that the model with the best performance is the Random Forest Model.
+
+# *Classification Tree*
+
+## Question 18
+```{r}
+spamdata <- read.csv("E:/ESILV/S7/Machine Learning/PW/PW5/spam.csv")
+
+head(spamdata)
+```
+```{r}
+set.seed(123)
+
+sample_size <- sample(1:nrow(spamdata), size= round(0.8*nrow(spamdata)), replace= FALSE)
+
+training_set <- spamdata[sample_size,]
+test_set <- spamdata[-sample_size,]
+
+dim(training_set)
+dim(test_set)
+```
+```{r}
+Accuracy <- function(v1, v2){
+  pred <- ifelse(v1 > 0.5, "TRUE", "FALSE")
+  
+  accuracy <- mean(pred == v2)
+  return(accuracy)
+}
+```
+
+
+### *Logistic Regression Model*
+```{r}
+logmodel <- glm(spam~., data= training_set, family= binomial)
+
+logpre <- predict(logmodel, test_set, type= "response")
+
+logacc <- Accuracy(logpre, test_set$spam)
+logacc
+```
+
+### *Simple Classification Tree Model*
+```{r}
+library("rpart")
+
+tmodel <- rpart(spam~., data= training_set)
+
+tpre <- predict(tmodel, test_set, type= "vector")
+
+tacc <- Accuracy(tpre, test_set$spam)
+tacc
+```
+### *Bagged Model*
+```{r}
+library("ipred")
+
+btraining_set <- training_set
+btraining_set$spam <- ifelse(btraining_set$spam == "TRUE", 1, 0)
+
+bmodel <- bagging(spam~., data= btraining_set, nbagg = 500, coob= TRUE)
+
+bpre <- predict(bmodel, test_set, type= "response")
+
+bacc <- Accuracy(bpre, test_set$spam)
+bacc
+```
+
+### *Random Forest Model*
+```{r}
+library("randomForest")
+
+rfmodel <- randomForest(spam~., data= training_set, mtry= sqrt(length(training_set)-1), importance= TRUE)
+
+rfpre <- predict(rfmodel, test_set, type= "response")
+
+rfacc <- Accuracy(rfpre, test_set$spam)
+rfacc
+```
+
+### *Boosted models*
+```{r}
+library("gbm")
+
+boomodel <- gbm(spam~., data= training_set, distribution= "bernoulli", n.trees=500)
+
+boopre <- predict(boomodel, test_set, type= "response")
+booacc <- Accuracy(boopre, test_set$spam)
+booacc
+```
+
+```{r}
+df <- data.frame(Models= c("Logistic Regression Model", "Regression Tree Model", "Bagged Model", "Random Forest Model", "Boosted Model"), 
+                 acc= c(logacc, tacc, bacc, rfacc, booacc))
+
+library("ggplot2")
+
+ggplot(df, aes(x= Models, y= acc)) +
+  geom_col(aes(fill= Models)) +
+  scale_fill_manual(values= c("#000066", "#000099", "#0000FF", "#0066FF", "#0099FF"))
+```
+>We can see that the model which has the best accuracy is: Random Forest Model.
+The ranking of the models with the best accuracy is: 
+- Random Forest
+- Boosted Model
+- Logistic Regression Model
+- Bagged Model
+- Regression Tree Model
+
+# *Tuning Tree*
+
+## Question 19
+```{r}
+newspamdata <- spamdata
+newspamdata$spam <- as.factor(newspamdata$spam)
+newspamdata
+```
+
+```{r}
+set.seed(123)
+
+sample_size <- sample(1:nrow(spamdata), size= round(0.8*nrow(newspamdata)), replace= FALSE)
+
+newtraining_set <- newspamdata[sample_size,]
+newtest_set <- newspamdata[-sample_size,]
+
+dim(newtraining_set)
+dim(newtest_set)
+```
+
+```{r message=FALSE, warning=FALSE}
+#Automatic Grid
+library("caret")
+library("rpart")
+```
+
+### Logistic regression model
+```{r}
+set.seed(123)
+
+ltune <- train(spam~., data=newtraining_set, method= "glm")
+
+print(ltune)
+```
+
+```{r}
+print(ltune$finalModel)
+```
+
+```{r}
+summary(ltune$finalModel)
+```
+
+```{r}
+plot(varImp(ltune))
+```
+
+```{r}
+ltpre <- predict(ltune$finalModel, newtest_set, type= "response")
+
+ltacc <- Accuracy(ltpre, newtest_set$spam)
+ltacc
+```
+>We had seen that the precision of the logistic model was 0.925. With the tuning, we obtain the same result.
+
+
+### Bagged model
+```{r}
+set.seed(123)
+
+btune <- train(spam~., data=newtraining_set, method= "treebag")
+
+print(btune)
+```
+
+```{r}
+print(btune$finalModel)
+```
+
+```{r}
+plot(varImp(btune))
+```
+>We had seen that the accuracy of the bagged model was 0.9130435. With the tuning, we get an accuracy of 0.9308196. The tuning allowed us to improve the model.
+
+
+### Random Forest
+```{r}
+set.seed(123)
+
+rftune <- train(spam~., data=newspamdata, method= "rf")
+
+print(rftune)
+```
+
+```{r}
+print(rftune$finalModel)
+```
+
+```{r}
+varImpPlot(rftune$finalModel)
+```
+
+```{r}
+plot(rftune)
+```
+>We had seen that the precision of the random forest was 0.951087. With the tuning, we get an accuracy of 0.9442497. The result found is less accurate. The mtry parameter was 7.549834, with the tuning the best mtry parameter is 29. It is therefore the mtry parameter that explains this difference.
+
+
+### Boosted model
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+set.seed(123)
+
+bootune <- train(spam~., data=newspamdata, method= "gbm")
+```
+
+```{r}
+print(bootune$results)
+```
+
+```{r}
+plot(varImp(bootune))
+```
+
+```{r}
+plot(bootune)
+```
+
+```{r}
+print(bootune$finalModel)
+```
+```{r}
+print(bootune)
+```
+>We had seen that the accuracy of the boosted model was 0.951087. With the tuning, we obtain an accuracy of 0.9457970. The number of n.trees was 500 without tuning against 150 with tuning. We can see that the more this parameter increases, the more the precision increases.
