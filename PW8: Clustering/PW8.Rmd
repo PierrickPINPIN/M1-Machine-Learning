@@ -1,0 +1,333 @@
+---
+title: "PW8"
+author: "Pierrick PINPIN"
+date: "2022-12-07"
+output: html_document
+---
+
+# **K-means**
+
+## Question 1:
+```{r}
+ligue1 <- read.csv("E:\\ESILV\\S7\\Machine Learning\\PW\\PW8\\ligue1_17_18.csv", sep= ';', row.names= 1)
+head(ligue1)
+```
+
+## Question 2:
+```{r}
+head(ligue1,2)
+```
+
+```{r}
+ncol(ligue1)
+```
+
+## Question 3:
+```{r}
+pointsCards <- ligue1[,c("Points", "yellow.cards")]
+head(pointsCards)
+```
+
+## Question 4:
+```{r}
+set.seed(123)
+km <- kmeans(pointsCards, centers= 2, iter.max= 20)
+summary(km)
+```
+
+## Question 5:
+```{r}
+print(km)
+```
+>The K-Means algorithm includes cluster means, a clustering vector, sum of squares by cluster, and available components.
+
+## Question 6:
+```{r}
+print(km$centers)
+```
+
+## Question 7:
+```{r}
+plot(pointsCards[,1], pointsCards[,2], col= km$cluster, pch= 18, cex= 2)
+```
+
+## Question 8:
+```{r}
+plot(pointsCards[,1], pointsCards[,2], col= km$cluster, pch= 18, cex= 2, xlab= "Points", ylab= "Yellow Cards")
+text(x = pointsCards, labels = rownames(pointsCards), col = km$cluster, pos = 3, cex = 0.8)
+points(km$centers, col= 1:2, pch= 3, cex= 3,lwd= 3)
+```
+
+## Question 9:
+
+```{r}
+#km3
+set.seed(123)
+km3 <- kmeans(pointsCards, centers= 3, iter.max= 20)
+
+plot(pointsCards[,1], pointsCards[,2], col= km3$cluster, pch= 18, cex= 2)
+text(x = pointsCards, labels = rownames(pointsCards), col = km3$cluster, pos = 3, cex = 0.8)
+points(km3$centers, col= 1:3, pch= 3, cex= 3, lwd= 3)
+```
+
+```{r}
+#km4
+set.seed(123)
+km4 <- kmeans(pointsCards, centers= 4, iter.max= 20)
+
+plot(pointsCards[, 1], pointsCards[, 2],col=km4$cluster, pch= 18, cex=2)
+text(x = pointsCards, labels = rownames(pointsCards), col = km4$cluster, pos = 3, cex = 0.8)
+points(km4$centers, col=1:4, pch=3, cex=3, lwd=3)
+```
+
+## Question 10:
+```{r}
+set.seed(123)
+wss <- (nrow(pointsCards) - 1) * sum(apply(pointsCards, 2, var))
+for (i in 2:15) wss[i] <- sum(kmeans(pointsCards, centers= i)$withinss)
+plot(1:15, wss, type="b", xlab= "Number of Clusters", ylab= "Within groups sum of squares")
+```
+
+## Question 11:
+
+```{r}
+set.seed(123)
+for (i in 1:15) wss[i] <- kmeans(pointsCards, centers= i)$betweenss / kmeans(pointsCards, centers= i)$totss
+plot(1:15, wss, type="b", xlab= "Number of Clusters", ylab= "between_SS / total_SS")
+```
+
+>(Sum of Squares)BSS/TSS is a measure of the goodness of the classification k-means:
+
+```{r}
+y <- c(km$betweenss/km$totss, km3$betweenss/km3$totss, km4$betweenss/km4$totss)
+x <- c("km2", "km3", "km4")
+plot(y, main= "BSS/TSS ratio", xlab= "Number of clusters", ylab= "Goodness of the classification k-means", xaxt= "n")
+axis(1, at=c(1:3), labels= x) 
+```
+>We can see that km4 so the k-means with 4 clusters is the best model with an accuracy of:
+
+```{r}
+print(km4$betweenss/km4$totss)
+```
+
+## Question 12:
+```{r}
+ligue1_scaled <- scale(ligue1[,-(1)])
+head(ligue1_scaled)
+```
+
+## Question 13:
+```{r}
+set.seed(123)
+km.ligue1 <- kmeans(ligue1, centers= 3, iter.max= 20)
+
+plot(ligue1[, 1], ligue1[, 2], col= km.ligue1$cluster, pch= 18, cex= 2)
+text(ligue1[, 1]+0.05, ligue1[, 2]+2, labels = rownames(ligue1), col= km.ligue1$cluster, pos= 3, cex=0.8, main= "Unscaled data")
+points(km.ligue1$centers, col=1:3, pch=3, cex=3, lwd=3)
+```
+
+```{r}
+set.seed(123)
+km.ligue1.scaled <- kmeans(ligue1_scaled, centers= 3, iter.max= 20)
+
+plot(ligue1_scaled[, 1], ligue1_scaled[, 2], col= km.ligue1.scaled$cluster, pch= 18, cex= 2)
+text(ligue1_scaled[, 1], ligue1_scaled[, 2]+0.3, labels= row.names(ligue1_scaled), col= km.ligue1$cluster, main= "Scaled data")
+points(km.ligue1.scaled$centers, col=1:3, pch=3, cex=3, lwd=3)
+```
+
+## Question 14:
+```{r}
+#Unscaled data
+table(km.ligue1$cluster)
+```
+
+```{r}
+#Scaled data
+table(km.ligue1.scaled$cluster)
+```
+>We can see that we don't have the same result between bot tables.
+
+## Question 15:
+```{r message=FALSE, warning=FALSE}
+library(FactoMineR)
+library(factoextra)
+pcaligue1 <- PCA(ligue1)
+```
+>
+
+## Question 16:
+```{r}
+fviz_pca_biplot(pcaligue1)
+```
+> In a biplot, each observation is represented by a point on a graph, and the variables are represented by vectors that show the directions and strengths of the relationships between the observations and the variables.
+
+```{r}
+head(ligue1)
+```
+
+>Thus, we can see that clubs like PSG, Monaco, Lyon are opposed to Toulouse, Angers, or Amiens. This can be explained by the number of points (Dim1) and the number of victories (Dim2).
+
+
+## Question 17:
+```{r}
+fviz_pca_ind(pcaligue1, col.ind = km.ligue1$cluster, 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE
+             )
+```
+
+## Question 18:
+```{r}
+fviz_cluster(km.ligue1, data = ligue1,
+              palette = c("red", "blue", "green"), 
+              ggtheme = theme_minimal(),
+              main = "Clustering Plot")
+```
+
+```{r}
+set.seed(123)
+kme2 <- kmeans(pcaligue1$ind$coord[, 1:2], centers = 3, iter.max = 19)
+fviz_cluster(kme2, data = pcaligue1$ind$coord[, 1:2], 
+              palette = c("red", "blue", "green"), 
+              ggtheme = theme_minimal(),
+              main = "Clustering Plot On First 2 PCs")
+```
+
+
+# **Hierarchical Clustering**
+
+## Question 1:
+```{r}
+customer_data <- read.csv("E:\\ESILV\\S7\\Machine Learning\\PW\\PW8\\customer.csv", sep= ',')
+head(customer_data)
+```
+
+## Question 2:
+```{r}
+summary(customer_data)
+```
+```{r}
+str(customer_data)
+```
+
+## Question 3:
+```{r}
+if(any(is.na(customer_data))) {
+  stop("Missing data found!")
+}
+
+customer_data.scaled <- scale(customer_data)
+head(customer_data.scaled)
+```
+
+## Question 4:
+```{r}
+gradient_col = list(low = "blue", high = "red")
+clust_trend <- get_clust_tendency(customer_data.scaled, n= 50, gradient = gradient_col)
+clust_trend$plot
+```
+
+```{r}
+if(clust_trend$hopkins_stat > 0.5) 
+{
+
+  print("Data has good cluster structure.")
+} else {
+  print("Data does not have good cluster structure.")
+}
+```
+
+```{r}
+fviz_nbclust(customer_data.scaled, kmeans, method = "wss")
+```
+
+## Question 5:
+```{r message=FALSE, warning=FALSE}
+library(NbClust)
+nbclust_result <- NbClust(customer_data.scaled, distance= "euclidean", min.nc= 2, max.nc= 10, method= "kmeans")
+```
+>According to the majority rule, the best number of clusters is 4. 
+
+## Question 6:
+```{r warning=FALSE}
+hc <- hclust(dist(customer_data.scaled, method = "euclidean"), method = "average")
+hc
+```
+
+## Question 7:
+```{r}
+plot(hc,hang = -0.01, cex = 0.6)
+```
+## Question 8:
+```{r}
+cut <- cutree(hc, k= 4)
+cut
+```
+
+## Question 9:
+```{r}
+table(cut)
+```
+
+## Question 10:
+```{r}
+plot(hc)
+rect.hclust(hc,k=4, border="red")
+```
+
+## Question 11:
+```{r}
+plot(hc)
+rect.hclust(hc, k= 4, which= 2, border = "red")
+```
+
+## Question 12:
+```{r}
+fviz_cluster(list(data = customer_data.scaled, cluster = cut))
+```
+
+## Question 13:
+```{r warning=FALSE}
+library(dendextend)
+
+hc1 <- hclust((dist(customer_data.scaled, method="euclidean")), method="centroid")
+hc2 <- hclust((dist(customer_data.scaled, method="euclidean")), method="complete")
+dend1 <- as.dendrogram((hc1))
+dend2 <- as.dendrogram((hc2))
+dend_list <- dendlist(dend1, dend2)
+tanglegram(dend1, dend2)
+```
+
+## Question 14:
+```{r}
+tanglegram(dend1, dend2, highlight_distinct_edges = FALSE, common_subtrees_color_lines = FALSE,common_subtrees_color_branches = TRUE, main = paste("entanglement", round(entanglement(dend_list), 2)))
+```
+
+## Question 15:
+```{r}
+dend1 <- customer_data.scaled %>% dist %>% hclust("com") %>% as.dendrogram
+dend2 <- customer_data.scaled %>% dist %>% hclust("single") %>% as.dendrogram
+dend3 <- customer_data.scaled %>% dist %>% hclust("ave") %>% as.dendrogram
+dend4 <- customer_data.scaled %>% dist %>% hclust("centroid") %>% as.dendrogram
+
+dend_list <- dendlist("Complete" = dend1, "Single" = dend2,"Average" = dend3, "Centroid" = dend4)
+cors <- cor.dendlist(dend_list)
+round(cors, 2)
+```
+
+## Question 16:
+```{r}
+library(corrplot)
+corrplot(cors, "pie", "lower")
+```
+```{r}
+library(cluster)
+
+m <- c("average", "single","complete","ward")
+names(m) <- c("average", "single","complete","ward")
+
+ac <- function(x){agnes(customer_data.scaled, method = x)$ac}
+library(purrr)
+map_dbl(m,ac)
+```
+
