@@ -1,0 +1,215 @@
+---
+title: "PW2"
+output: html_document
+date: "2022-09-21"
+---
+
+#Exemple 1
+
+Question 1
+```{r}
+library(MASS)
+
+dim(Boston)
+
+summary(Boston)
+
+View(Boston)
+```
+Question 2
+```{r}
+train= 1:round(dim(Boston)[1]*0.8, digits=0)
+
+test= -train
+
+variables= c("lstat", "medv")
+
+training_set= Boston[train, variables]
+
+test_set= Boston[test, variables]
+
+View(training_set)
+View(test_set)
+dim(training_set)
+```
+Computes the 80% of the length of the Boston dataset and split it with this ratio (80% for train_set and 20% for the test_set)
+
+Question 3
+```{r}
+plot(training_set$lstat, training_set$medv, col= "#333333")
+```
+We can see that there is no linearity between lstat and mdev
+
+Question 4
+```{r}
+training_set$lstat= log(training_set$lstat)
+```
+Transforms the variable lsat into its computation of its logartithms
+
+Question 5
+```{r}
+model <- lm(medv~log(lstat),data=training_set)
+summary(model)
+```
+
+Question 6
+```{r}
+plot(log(training_set$lstat), training_set$medv,
+     xlab = "Logarithmic form of 'lsat'",
+     ylab = "mdv",
+     col= "#333333")
+
+abline(model, col= "#9900FF", lwd =3)
+```
+We can see in grey the different points ploted before but with the logarithmic transformation and in purple the linear regression line
+
+Question 7
+```{r}
+predict(model, data.frame(lstat = c(0.05)))
+```
+Then the median value of the house with lsat=5% is $119.0128
+
+Question 8
+```{r}
+predict(model, data.frame(lstat = c(0.05, 0.1, 0.15)))
+```
+Then the median value of the house with: 
+lsat=5% is $119.0128
+lsat=10% is $101.57405
+lsat=15% is $91.37303
+
+Question 9
+```{r}
+train_model <- predict(model, data.frame(lstat = test_set$lstat))
+train_MSE <- mean((test_set$medv - train_model)^2)
+train_MSE
+```
+
+#Exemple 2
+
+Question 1
+```{r}
+library(datarium)
+library(ggpubr)
+```
+
+Question 2
+```{r}
+data("marketing", package = "datarium")
+
+View(marketing)
+
+head(marketing, 10)
+
+summary(marketing)
+```
+
+Question 3
+```{r}
+ggplot(marketing, aes(x = youtube, y = sales)) + geom_point() + stat_smooth()
+```
+We can see that the variance increases with x (Youtube). We can suppose a linearity between the sales and the youtube variables according to this graphic
+
+
+Question 4
+```{r}
+cor(marketing$sales, marketing$youtube)
+```
+We can see that the correlation between the sales and youtube variables is larger enough to suppose a link btween them
+
+
+Question 5
+```{r}
+model <- lm(sales ~ youtube, data = marketing)
+
+model
+```
+We can see that b0= 8.43911 and b1= 0.04754
+
+
+Question 6
+```{r}
+summary(model)
+```
+Residuals: These values are the difference between the actual values and the values that the model predicted. Here the min is: -10.0632 and the max is 8.6548
+
+Coefficients:
+
+Estimate: These values are the weight of the variables. Here, we have seen that b0= 8.439112 and b1= 0.047537
+
+Std. Error: The standard error is the measure between the average estimated by the model and the actual average value. Here the sales can vary by $0.002691
+
+t value: The t-value measure how the standard deviation, our coefficients estimate is far from 0
+
+Pr(>|t|): This is the probability to obtain any value equal or larger than t
+
+Signif. codes: These codes indicate how certain the coefficient has an impact on dependant variable (y, here sales)
+
+Residual standard error: This is the measure of the quality of the linear regression fit. Here, the sales can deviate from the true regression line by $3.91
+
+Multiple R-squared: This is the statistic of how well the model is fitting the data. Here 61.19% of the sales can be explained by the variable youtube (Youtube marketing)
+
+Adjusted R-squared: For multiple regression this takes account the number of the considered variable
+
+F-statistic: It is an indicator of the relationship between the predictions of the models and the actual data. This is a ratio of the both standard deviation.
+
+p-value: This is the probabitity for a given model under the assumption that the null hypothesis is correct. Here, the p-value is really low. So our model is significant.
+
+Question 7
+```{r}
+ggplot(marketing, aes(x = youtube, y = sales)) + geom_point() + stat_smooth(method = lm, se =FALSE)
+```
+We can see that our model fit relatively the last curve
+
+
+Question 8
+```{r}
+help(summary)
+```
+
+
+Question 9
+```{r}
+summary(model)
+```
+We can see that the p-value is really low. So there is a significant association between the sales and the Youtube marketing. 
+
+
+Question 10
+```{r}
+confint(model)
+```
+So the interval confidence is: [0.04223072, 0.05284256]
+
+Question 11
+```{r}
+summary(model)
+```
+The Residual Standard Error (RSE): 3.91
+The R-squared (R2): 0.6119
+Fstatistic: 312.1
+
+
+Question 12
+```{r}
+sigma(model)*100/mean(marketing$sales)
+```
+
+Question 13
+
+The F test is not significant for simple linear regression but a large F-statistic (312.1) will corresponds to a statistically significant p-value (p < 0.05 : p = 2.2e-16) which is highly significant.
+
+
+
+Question 14
+```{r}
+par(mfrow = c(2, 2))
+plot(model)
+```
+
+
+Question 15
+```{r}
+plot(model)
+```
+There are not any influential points in our regression model.(If any point in this plot falls outside of Cook’s distance, then it is considered to be an influential observation). So, there is no outlier that greatly affects the slope of the regression line
